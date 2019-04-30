@@ -1,6 +1,9 @@
 pico-8 cartridge // http://www.pico-8.com
 version 16
 __lua__
+-- lonely light bikes
+-- by kitasuna
+-- thanks to rabidgremlin for the rad tutorial
 scrn = {}
 btn_u = 2
 btn_d = 3
@@ -69,6 +72,8 @@ function update_game()
 
   if(pget(p1.x,p1.y) != clr_blk) then show_go() end
   if(pget(p2.x,p2.y) != clr_blk) then show_win() end
+  -- Give the win to the player if the bikes share a pixel
+  if(p2.x == p1.x and p2.y == p1.y) then show_win() end
 end
 
 function draw_game()
@@ -96,7 +101,7 @@ function draw_game()
 end
 
 
-function run_game()
+function start_game()
   arena_x0 = base_arena_x0 + ( (2 - _config.arena_scale) * 16 )
   arena_x1 = base_arena_x1 + ( (_config.arena_scale - 2) * 16 )
   arena_y0 = base_arena_y0 + ( (2 - _config.arena_scale) * 16 )
@@ -106,15 +111,9 @@ function run_game()
 
   p1.x = arena_x1 - flr((arena_x1 - arena_x0) / 4)
   p1.y = arena_y1 - flr((arena_y1 - arena_y0) / 4)
+  p1.dir = dir_l
+  p2.last_dir = dir_u
 
-  p_init(p2)
-
-  cls()
-  rect(arena_x0,arena_y0,arena_x1,arena_y1,map_clr)
-  sfx(0,0,0)
-end
-
-function p_init(p2)
   p2.x = arena_x0 + flr((arena_x1 - arena_x0) / 4)
   p2.y = arena_y0 + flr((arena_y1 - arena_y0) / 4)
   p2.cdown = flr(rnd(max_cdown))
@@ -123,13 +122,17 @@ function p_init(p2)
   p2.divine = true
   p2.dec_perfect = 300
   p2.dec_threshold = 1.5
+
+  cls()
+  rect(arena_x0,arena_y0,arena_x1,arena_y1,map_clr)
+  sfx(0,0,0)
 end
 
 function update_menu()
   if(btnp(2) and _config.menu_sel > 1) then
     _config.menu_sel -= 1
   end
-  if(btnp(3) and _config.menu_sel < 3) then
+  if(btnp(3) and _config.menu_sel < 2) then
     _config.menu_sel += 1
   end
 
@@ -137,7 +140,7 @@ function update_menu()
 end
 
 menu_hndlr = {
-  function() if(btnp(4)) then run_game() end end,
+  function() if(btnp(4)) then start_game() end end,
   function()
     if(btnp(0) and _config.arena_scale > 1) then
       _config.arena_scale -= 1
@@ -157,6 +160,9 @@ function draw_menu()
   print(">>", 18, (62 + (_config.menu_sel * 8)), 14)
   print("start", 30, 70, (_config.menu_sel == 1 and 14 or 5))
   print("arena: "..scales[_config.arena_scale], 30, 78, (_config.menu_sel == 2 and 14 or 5))
+
+  print("based on tut by rabidgremlin", 16, 112, 5)
+  print("v0.1.1 by kitasuna", 56, 120, 5)
 end
 
 function show_go()
@@ -187,7 +193,7 @@ function update_postgame()
   if(btn(5)) then
     show_menu()
   elseif(btn(4)) then 
-    run_game() 
+    start_game() 
   end
 end
 
@@ -199,7 +205,7 @@ end
 
 function draw_win()
   rectfill(arena_x0,arena_y0,arena_x1,arena_y0 + 16,0)
-  print("you win", 42, arena_y0, 3)
+  print("you win", 42, 0, 3)
   postgame_controls()
   splode(p2, anim_step)
   anim_step += 1
@@ -232,10 +238,6 @@ function ai(p2)
 
 end
 
-function panic(p2, dir)
-  p2.cdown = 0
-end
-
 function update_safedirs(p2)
   p2.safedirs = {true, true, true, true}
 
@@ -260,19 +262,19 @@ function update_safedirs(p2)
     p2.safedirs[dir_l] = false
   end
 
-  if(p2.x <= 3) then
+  if(p2.x <= (arena_x0 + 3)) then
     p2.safedirs[dir_l] = false
   end
 
-  if(p2.x >= 125) then
+  if(p2.x >= (arena_x1 - 3)) then
     p2.safedirs[dir_r] = false
   end
 
-  if(p2.y <= 2) then
+  if(p2.y <= (arena_y0 + 3)) then
     p2.safedirs[dir_u] = false
   end
 
-  if(p2.y >= 125) then
+  if(p2.y >= (arena_y1 - 3)) then
     p2.safedirs[dir_d] = false
   end
 
